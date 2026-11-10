@@ -1,0 +1,17 @@
+{
+  "name": "Aqua Ticket",
+  "short_name": "Aqua Ticket",
+  "description": "Say where you're going on Mumbai Metro Line 3. It opens the ticket with both stations filled in, ready to pay.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0B1619",
+  "theme_color": "#137C8C",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "shortcuts": [
+    { "name": "Ticket home", "url": "./?q=home", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
+  ]
+}
