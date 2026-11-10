@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;700&family=Overpass:wght@600;800&display=swap">
 <style>
-/* One screen: a single talk button in the middle, what it heard underneath, then it hands off to the ticket page. */
+/* Two states on one screen: a big talk button, then a ticket card where every part of the trip can be corrected before paying. */
 :root{
   --bg:#EDF3F4;--surface:#FFFFFF;--fg:#10272C;--muted:#55707A;--line:#CCDCDF;
   --aqua:#137C8C;--aqua-soft:#D5ECEF;--on-aqua:#FFFFFF;--warn:#8A5200;--warn-soft:#FDEFD3;
@@ -35,12 +35,17 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);fon
 button,input,select{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--aqua);outline-offset:3px}
 [hidden]{display:none!important}
-.app{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:20px}
+.app{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:18px}
 .top{display:flex;justify-content:space-between;align-items:center}
 .eyebrow{font-family:var(--f-display);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--aqua)}
 .gear{border:0;background:transparent;padding:8px;border-radius:10px;cursor:pointer;color:var(--muted)}
-.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center}
-.talk{position:relative;width:168px;height:168px;border-radius:50%;border:0;background:var(--aqua);color:var(--on-aqua);cursor:pointer;display:grid;place-items:center;box-shadow:0 10px 30px color-mix(in srgb,var(--aqua) 35%,transparent)}
+.k{font-family:var(--f-display);font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+/* talk */
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center}
+.hero{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%}
+.words{display:flex;flex-direction:column;gap:6px;min-width:0}
+.talk{position:relative;flex:none;width:168px;height:168px;border-radius:50%;border:0;background:var(--aqua);color:var(--on-aqua);cursor:pointer;display:grid;place-items:center;box-shadow:0 10px 30px color-mix(in srgb,var(--aqua) 35%,transparent)}
 .talk svg{width:64px;height:64px}
 .talk::after{content:"";position:absolute;inset:-12px;border-radius:50%;border:3px solid var(--aqua);opacity:0}
 .talk.on::after{opacity:.6}
@@ -50,26 +55,57 @@ button,input,select{font:inherit;color:inherit}
 }
 .status{font-family:var(--f-display);font-weight:800;font-size:24px;line-height:1.2;margin:0;text-wrap:balance}
 .said{margin:0;color:var(--muted);font-size:18px;min-height:1.5em;max-width:100%;overflow-wrap:anywhere}
-.card{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;text-align:left}
-.route{display:flex;flex-direction:column;gap:2px}
-.route .k{font-family:var(--f-display);font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.route .v{font-size:20px;font-weight:700;line-height:1.2}
-.route .why{font-size:13px;color:var(--muted);font-weight:400}
-.sub{margin:0;color:var(--muted);font-size:14px}
-.bar{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:var(--aqua)}
-.actions{display:flex;gap:10px}
-.primary{flex:1;border:0;border-radius:12px;background:var(--aqua);color:var(--on-aqua);font-family:var(--f-display);font-weight:800;font-size:17px;padding:14px;cursor:pointer;text-align:center;text-decoration:none}
-.ghost{border:1px solid var(--line);border-radius:12px;background:transparent;padding:14px 16px;cursor:pointer}
+.stage.has-trip{justify-content:flex-start;gap:14px}
+.stage.has-trip .hero{flex-direction:row;text-align:left;gap:14px}
+.stage.has-trip .talk{width:64px;height:64px;box-shadow:none}
+.stage.has-trip .talk svg{width:28px;height:28px}
+.stage.has-trip .talk::after{inset:-7px;border-width:2px}
+.stage.has-trip .status{font-size:20px}
+.stage.has-trip .said{font-size:15px;min-height:0}
+
+/* ticket card */
+.ticket{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:20px;text-align:left;overflow:hidden}
+.leg{position:relative;display:flex;flex-direction:column;gap:14px;padding:16px 68px 14px 46px}
+.stop{position:relative;display:flex;flex-direction:column;gap:1px;min-width:0}
+.stop::before{content:"";position:absolute;left:-30px;top:22px;width:14px;height:14px;border-radius:50%;border:3px solid var(--aqua);background:var(--surface)}
+.stop.to::before{background:var(--aqua)}
+.stop.from::after{content:"";position:absolute;left:-24px;top:40px;bottom:-34px;width:2px;background:repeating-linear-gradient(var(--line) 0 4px,transparent 4px 8px)}
+/* The station name is plain text so long names can wrap; an invisible native picker sits on top of it. */
+.pickrow{position:relative;border-radius:6px}
+.pickrow:focus-within{outline:3px solid var(--aqua);outline-offset:3px}
+.pickrow .v{display:block;font-family:var(--f-display);font-weight:800;font-size:20px;line-height:1.25;padding:3px 22px 3px 0;overflow-wrap:anywhere;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 9px) 14px,calc(100% - 4px) 14px;background-size:5px 5px;background-repeat:no-repeat}
+.pickrow .v.empty{color:var(--aqua)}
+.pickrow select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+.why{font-size:13px;color:var(--muted)}
+.swap{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;display:grid;place-items:center}
+.opt{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--line)}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:22px;font-weight:700;line-height:1;cursor:pointer}
+.stepper button:disabled{opacity:.35;cursor:default}
+.stepper output{min-width:36px;text-align:center;font-family:var(--f-display);font-weight:800;font-size:24px;font-variant-numeric:tabular-nums}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;border-radius:999px;padding:8px 18px;min-height:40px;font-weight:700;cursor:pointer;color:var(--muted)}
+.seg button[aria-checked="true"]{background:var(--aqua);color:var(--on-aqua)}
+.pay{display:flex;flex-direction:column;gap:10px;padding:14px 16px 16px;border-top:1px solid var(--line)}
+.primary{display:block;border:0;border-radius:14px;background:var(--aqua);color:var(--on-aqua);font-family:var(--f-display);font-weight:800;font-size:18px;padding:16px;cursor:pointer;text-align:center;text-decoration:none}
+.primary[aria-disabled="true"]{opacity:.45;cursor:default}
+.second{display:block;border:1px solid var(--line);border-radius:14px;background:transparent;color:var(--fg);font-weight:700;font-size:15px;padding:12px;text-align:center;text-decoration:none}
+.help{margin:0;color:var(--muted);font-size:14px}
+.warn{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px;margin:0 16px 12px}
+
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:1px solid var(--line);background:var(--aqua-soft);border-radius:999px;padding:8px 14px;cursor:pointer}
-.warn{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px;margin:0}
+.chips.center{justify-content:center}
+.stop .chips{margin-top:6px}
+.chip{border:1px solid var(--line);background:var(--aqua-soft);border-radius:999px;padding:9px 14px;min-height:40px;cursor:pointer}
+.sub{margin:0;color:var(--muted);font-size:14px}
 .field{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
 .field select,.field input{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;font-size:16px;color:var(--fg);width:100%}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .typer{display:flex;gap:8px;width:100%}
 .typer input{flex:1;min-width:0;border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;font-size:17px}
-.link{border:0;background:transparent;color:var(--aqua);text-decoration:underline;cursor:pointer;font-size:15px;padding:4px}
+.typer .primary{flex:none;padding:12px 16px;font-size:17px}
+.link{border:0;background:transparent;color:var(--aqua);text-decoration:underline;cursor:pointer;font-size:15px;padding:8px}
 .settings{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .settings h2{font-family:var(--f-display);font-size:16px;margin:0}
 .check{display:flex;gap:10px;align-items:center;font-size:15px}
@@ -87,160 +123,185 @@ button,input,select{font:inherit;color:inherit}
 
   <section class="settings" id="settings" hidden aria-label="Settings">
     <h2>Settings</h2>
-    <p class="sub" style="margin:0">Pick your home station once. “Home”, “ghar” and “घरी” will mean this station.</p>
+    <p class="sub">Pick your home station once. “Home”, “ghar” and “घरी” will mean this station.</p>
     <label class="field">Home station<select id="home"></select></label>
     <label class="field">Voice language
       <select id="lang"><option value="en-IN">English (India) – also catches Hinglish</option><option value="hi-IN">हिन्दी</option><option value="mr-IN">मराठी</option></select>
     </label>
     <label class="check"><input type="checkbox" id="autoListen"> Start listening as soon as the app opens</label>
     <label class="check"><input type="checkbox" id="useGps"> Use my location to pick the starting station</label>
-    <label class="check"><input type="checkbox" id="autoGo"> Go to payment automatically after it understands me</label>
     <button class="primary" id="closeSettings" type="button">Done</button>
   </section>
 
   <main class="stage" id="stage">
-    <button class="talk" id="talk" type="button" aria-label="Tap to talk">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/></svg>
-    </button>
-    <p class="status" id="status">Tap and say where you’re going</p>
-    <p class="said" id="said">“BKC” · “airport T2 jaana hai” · “चर्चगेट वरून घरी”</p>
-
-    <div class="card" id="result" hidden>
-      <div class="route"><span class="k">From</span><span class="v" id="rFrom"></span></div>
-      <div class="route"><span class="k">To</span><span class="v" id="rTo"></span></div>
-      <p class="sub" id="rSub"></p>
-      <p class="warn" id="marol" hidden>On the next screen, pick <b>Marol Naka</b> with the Aqua Line badge. ixigo mixes it up with the Line 1 station.</p>
-      <div class="bar" id="barWrap"><i id="bar"></i></div>
-      <div class="actions">
-        <a class="primary" id="go" href="#">Confirm & pay</a>
-        <button class="ghost" id="change" type="button">Change</button>
+    <div class="hero">
+      <button class="talk" id="talk" type="button" aria-label="Tap to talk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/></svg>
+      </button>
+      <div class="words">
+        <p class="status" id="status" aria-live="polite">Tap and say your trip</p>
+        <p class="said" id="said"></p>
       </div>
     </div>
 
-    <div class="card" id="askCard" hidden>
-      <p class="status" id="askTitle" style="font-size:19px"></p>
-      <div class="chips" id="askChips"></div>
-    </div>
+    <div class="chips center" id="quick" hidden></div>
 
-    <div class="card" id="editCard" hidden>
-      <div class="row2">
-        <label class="field">From<select id="eFrom"></select></label>
-        <label class="field">To<select id="eTo"></select></label>
+    <section class="ticket" id="confirm" hidden aria-label="Your trip">
+      <div class="leg">
+        <div class="stop from">
+          <span class="k">From</span>
+          <div class="pickrow"><span class="v" id="vFrom" aria-hidden="true"></span><select id="cFrom" aria-label="From station"></select></div>
+          <span class="why" id="cWhy" hidden>Nearest station to you</span>
+          <div class="chips" id="askFrom" hidden></div>
+        </div>
+        <div class="stop to">
+          <span class="k">To</span>
+          <div class="pickrow"><span class="v" id="vTo" aria-hidden="true"></span><select id="cTo" aria-label="To station"></select></div>
+          <div class="chips" id="askTo" hidden></div>
+        </div>
+        <button class="swap" id="swap" type="button" aria-label="Swap From and To">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4v15M8 4 4.5 7.5M8 4l3.5 3.5M16 20V5M16 20l-3.5-3.5M16 20l3.5-3.5"/></svg>
+        </button>
       </div>
-      <label class="field">People<select id="ePc"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
-      <button class="primary" id="eGo" type="button">Confirm & pay</button>
-    </div>
+      <div class="opt">
+        <span class="k" id="lblPc">Tickets</span>
+        <div class="stepper" role="group" aria-labelledby="lblPc">
+          <button id="less" type="button" aria-label="One ticket fewer">−</button>
+          <output id="cPc" aria-live="polite">1</output>
+          <button id="more" type="button" aria-label="One more ticket">+</button>
+        </div>
+      </div>
+      <div class="opt">
+        <span class="k" id="lblTrip">Trip</span>
+        <div class="seg" role="radiogroup" aria-labelledby="lblTrip">
+          <button id="tSingle" type="button" role="radio" aria-checked="true">Single</button>
+          <button id="tReturn" type="button" role="radio" aria-checked="false">Return</button>
+        </div>
+      </div>
+      <p class="warn" id="note" hidden></p>
+      <div class="pay">
+        <a class="primary" id="payA" href="#" role="button">Confirm &amp; pay</a>
+        <a class="second" id="payB" href="#" hidden>Use the official WhatsApp bot</a>
+        <p class="help" id="payHelp"></p>
+      </div>
+    </section>
+
+    <button class="link" id="reset" type="button" hidden>Start over</button>
 
     <form class="typer" id="typer" hidden autocomplete="off">
-      <input id="typed" type="text" placeholder="Type or use the keyboard mic" aria-label="Where are you going?">
-      <button class="primary" style="flex:none;padding:12px 16px" type="submit">Go</button>
+      <input id="typed" type="text" placeholder="Type or use the keyboard mic" aria-label="Your trip">
+      <button class="primary" type="submit">Go</button>
     </form>
     <button class="link" id="typeInstead" type="button">Type instead</button>
   </main>
 
-  <p class="foot">Opens ixigo, an official metro ticket seller, with your stations filled in. Pick PhonePe on its payment screen.</p>
+  <p class="foot">This app only fills in your trip. You pay inside ixigo or the official WhatsApp page, with your own UPI app.</p>
 </div>
 
 <script>
 /*ENGINE-START*/
 const Engine = (() => {
   // Aqua Line, north to south. q = the search text ixigo resolves to this exact station (null = ixigo picks the wrong one).
+  // lat = romanised names, landmarks and likely mishearings. dev = Devanagari.
   const S = [
     null,
     {id:1, name:"Aarey JVLR", short:"Aarey JVLR", q:"Aarey JVLR", tag:"",
-      lat:["aarey jvlr","aarey","aare","arey","aarey colony","jvlr"], dev:["आरे","जेवीएलआर","जेव्हीएलआर","आरे कॉलनी","आरे कॉलोनी"]},
+      lat:["aarey jvlr","aarey","aare","arey","aarey colony","arey colony","aarey road","jvlr","jogeshwari vikhroli link road"], dev:["आरे","जेवीएलआर","जेव्हीएलआर","आरे कॉलनी","आरे कॉलोनी"]},
     {id:2, name:"SEEPZ", short:"SEEPZ", q:"SEEPZ", tag:"",
-      lat:["seepz","seeps","sepz","seep z","sipz"], dev:["सीप्ज","सीप्झ","सिप्झ","सीप्स"]},
+      lat:["seepz","seeps","sepz","seep z","sipz","sips","cepz","seepz village"], dev:["सीप्ज","सीप्झ","सिप्झ","सीप्स"]},
     {id:3, name:"MIDC-Andheri", short:"MIDC-Andheri", q:"MIDC Andheri", tag:"",
       lat:["midc andheri","andheri midc","midc","andheri east","andheri"], dev:["एमआयडीसी","एमआईडीसी","अंधेरी"]},
     {id:4, name:"Marol Naka", short:"Marol Naka", q:null, tag:"Metro Line 1",
-      lat:["marol naka","marol"], dev:["मरोळ","मरोल"]},
+      lat:["marol naka","marol","marol naaka","marol nakka","maroul naka"], dev:["मरोळ","मरोल"]},
     {id:5, name:"CSMI Airport T2", short:"Airport T2", q:"Mumbai Airport T2", tag:"Airport",
-      lat:["airport t2","airport terminal 2","airport terminal two","terminal 2","terminal two","international airport","t2","t two"], dev:["टी2","टर्मिनल 2","टर्मिनल टू","आंतरराष्ट्रीय","इंटरनॅशनल","इंटरनेशनल","टी टू"]},
+      lat:["airport t2","t2 airport","airport 2","airport two","airport terminal 2","airport terminal two","terminal 2","terminal two","terminal to","terminal too","terminal t2","international airport","international terminal","international","sahar airport","t2","t two"], dev:["टी2","टी 2","टर्मिनल 2","टर्मिनल टू","आंतरराष्ट्रीय","इंटरनॅशनल","इंटरनेशनल","टी टू"]},
     {id:6, name:"Sahar Road", short:"Sahar Road", q:"Sahar Road", tag:"",
-      lat:["sahar road","sahar"], dev:["सहार"]},
+      lat:["sahar road","sahar","sehar road"], dev:["सहार"]},
     {id:7, name:"CSMI Airport T1", short:"Airport T1", q:"Mumbai Airport T1", tag:"Airport",
-      lat:["airport t1","airport terminal 1","airport terminal one","terminal 1","terminal one","domestic airport","domestic","t1","t one"], dev:["टी1","टर्मिनल 1","टर्मिनल वन","डोमेस्टिक","देशांतर्गत","टी वन"]},
+      lat:["airport t1","t1 airport","airport 1","airport one","airport terminal 1","airport terminal one","terminal 1","terminal one","terminal t1","domestic airport","domestic terminal","domestic","santacruz airport","vile parle","t1","t one"], dev:["टी1","टी 1","टर्मिनल 1","टर्मिनल वन","डोमेस्टिक","देशांतर्गत","टी वन"]},
     {id:8, name:"Santacruz", short:"Santacruz", q:"Santacruz Metro", tag:"",
-      lat:["santacruz","santa cruz","santa cruise","santacruise"], dev:["सांताक्रूझ","सांताक्रूज","सांताक्रुज","सांताक्रुझ"]},
+      lat:["santacruz","santa cruz","santa cruise","santacruise","santacrus","santa crus","santacruz east"], dev:["सांताक्रूझ","सांताक्रूज","सांताक्रुज","सांताक्रुझ"]},
     {id:9, name:"Bandra Colony", short:"Bandra Colony", q:"Bandra Colony", tag:"",
-      lat:["bandra colony","bandra east"], dev:["वांद्रे कॉलनी","बांद्रा कॉलोनी","बांद्रा कॉलनी","वांद्रे पूर्व"]},
+      lat:["bandra colony","bandra east","bandra government colony","government colony","vidyanagari","vidya nagari"], dev:["वांद्रे कॉलनी","बांद्रा कॉलोनी","बांद्रा कॉलनी","वांद्रे पूर्व","विद्यानगरी"]},
     {id:10, name:"BKC (Bandra-Kurla Complex)", short:"BKC", q:"BKC", tag:"",
-      lat:["bkc","bandra kurla complex","bandra kurla","kurla complex","jio world","jio world centre","jio world center"], dev:["बीकेसी","बी के सी","वांद्रे कुर्ला","बांद्रा कुर्ला","जिओ वर्ल्ड"]},
+      lat:["bkc","bkc metro","bandra kurla complex","bandra kurla","kurla complex","jio world","jio world centre","jio world center","jio garden","nmacc","diamond bourse","mmrda"], dev:["बीकेसी","बी के सी","वांद्रे कुर्ला","बांद्रा कुर्ला","जिओ वर्ल्ड"]},
     {id:11, name:"Dharavi", short:"Dharavi", q:"Dharavi", tag:"",
-      lat:["dharavi"], dev:["धारावी"]},
+      lat:["dharavi","dharawi","daravi","tharavi"], dev:["धारावी"]},
     {id:12, name:"Shitala Devi Mandir", short:"Shitala Devi", q:"Shitala Devi Mandir", tag:"",
-      lat:["shitala devi mandir","shitala devi","shitladevi","shitla devi","sheetla devi","shitaladevi","sheetladevi","mahim"], dev:["शितलादेवी","शीतलादेवी","शितला देवी","शीतला देवी","माहीम","माहिम"]},
+      lat:["shitala devi mandir","shitala devi","shitladevi","shitla devi","sheetla devi","sheetala devi","sheetal devi","sitla devi","sitladevi","shitaladevi","sheetladevi","shitala","mahim"], dev:["शितलादेवी","शीतलादेवी","शितला देवी","शीतला देवी","माहीम","माहिम"]},
     {id:13, name:"Dadar", short:"Dadar", q:"Dadar Metro", tag:"",
-      lat:["dadar"], dev:["दादर"]},
+      lat:["dadar","dadar west","dadar metro","dader","daadar"], dev:["दादर"]},
     {id:14, name:"Siddhivinayak", short:"Siddhivinayak", q:"Siddhivinayak", tag:"",
-      lat:["siddhivinayak","sidhivinayak","siddhi vinayak","sidhi vinayak","prabhadevi"], dev:["सिद्धिविनायक","सिद्धीविनायक","प्रभादेवी"]},
+      lat:["siddhivinayak","sidhivinayak","siddhi vinayak","sidhi vinayak","city vinayak","siddhivinayak temple","siddhivinayak mandir","siddhi","prabhadevi"], dev:["सिद्धिविनायक","सिद्धीविनायक","सिद्धि विनायक","सिद्धी विनायक","प्रभादेवी"]},
     {id:15, name:"Worli", short:"Worli", q:"Worli", tag:"",
-      lat:["worli","warli","worli naka","worli sea face"], dev:["वरळी","वर्ली"]},
+      lat:["worli","warli","varli","verli","vorli","worley","worly","wurli","whirly","worli naka","worli sea face"], dev:["वरळी","वर्ली","वरली"]},
     {id:16, name:"Acharya Atre Chowk", short:"Acharya Atre Chowk", q:"Acharya Atre Chowk", tag:"",
-      lat:["acharya atre chowk","acharya atre","atre chowk","atre"], dev:["आचार्य अत्रे","अत्रे चौक","अत्रे"]},
+      lat:["acharya atre chowk","acharya atre chauk","acharya atre","aacharya atre","acharya","atre chowk","atre chauk","atrey chowk","atre"], dev:["आचार्य अत्रे","अत्रे चौक","अत्रे"]},
     {id:17, name:"Science Centre", short:"Science Centre", q:"Science Centre", tag:"",
-      lat:["science centre","science center","science museum","nehru science"], dev:["सायन्स सेंटर","सायन्स","विज्ञान केंद्र"]},
+      lat:["science centre","science center","science museum","science","nehru science","nehru science centre","nehru science center"], dev:["सायन्स सेंटर","सायन्स","विज्ञान केंद्र"]},
     {id:18, name:"Mahalaxmi", short:"Mahalaxmi", q:"Mahalaxmi Metro", tag:"",
-      lat:["mahalaxmi","mahalakshmi","maha laxmi","race course"], dev:["महालक्ष्मी"]},
+      lat:["mahalaxmi","mahalakshmi","mahaluxmi","maha laxmi","maha lakshmi","race course","racecourse"], dev:["महालक्ष्मी"]},
     {id:19, name:"Jagannath Shankar Sheth", short:"Jagannath Shankar Sheth", q:"Jagannath Shankar Sheth Metro", tag:"Local: Western",
-      lat:["jagannath shankar sheth","jagannath shankarsheth","jagannath","nana shankarsheth","shankarsheth","shankar sheth","mumbai central","bombay central"], dev:["जगन्नाथ शंकर शेठ","जगन्नाथ शंकरशेठ","जगन्नाथ","शंकरशेठ","शंकर शेठ","मुंबई सेंट्रल","मुंबई सेन्ट्रल","बॉम्बे सेंट्रल"]},
+      lat:["jagannath shankar sheth","jagannath shankar seth","jagannath shankarsheth","jagannath","nana shankarsheth","shankarsheth","shankar sheth","jss","mumbai central","mumbai central metro","bombay central"], dev:["जगन्नाथ शंकर शेठ","जगन्नाथ शंकरशेठ","जगन्नाथ","शंकरशेठ","शंकर शेठ","मुंबई सेंट्रल","मुंबई सेन्ट्रल","बॉम्बे सेंट्रल"]},
     {id:20, name:"Grant Road", short:"Grant Road", q:"Grant Road Metro", tag:"",
-      lat:["grant road","grant"], dev:["ग्रँट रोड","ग्रांट रोड","ग्रँट","ग्रांट"]},
+      lat:["grant road","grand road","grant"], dev:["ग्रँट रोड","ग्रांट रोड","ग्रँट","ग्रांट"]},
     {id:21, name:"Girgaon", short:"Girgaon", q:"Girgaon", tag:"",
-      lat:["girgaon","girgaum","girgaun","girgaon chowpatty","chowpatty"], dev:["गिरगाव","गिरगांव","गिरगाँव","चौपाटी"]},
+      lat:["girgaon","girgaum","girgaun","girgao","gurgaon","girgaon chowpatty","chowpatty","thakurdwar","charni road"], dev:["गिरगाव","गिरगांव","गिरगाँव","चौपाटी"]},
     {id:22, name:"Kalbadevi", short:"Kalbadevi", q:"Kalbadevi", tag:"",
-      lat:["kalbadevi","kalba devi"], dev:["काळबादेवी","कालबादेवी","काळबा देवी"]},
+      lat:["kalbadevi","kalba devi","kalbadevi road"], dev:["काळबादेवी","कालबादेवी","काळबा देवी"]},
     {id:23, name:"CSMT", short:"CSMT", q:"CSMT", tag:"Local: Central, Harbour",
-      lat:["csmt","cstm","cst","vt","victoria terminus","chhatrapati shivaji maharaj terminus","shivaji terminus"], dev:["सीएसएमटी","सीएसटी","व्हीटी","वीटी","छत्रपती शिवाजी महाराज टर्मिनस"]},
+      lat:["csmt","cstm","cst","vt","bombay vt","victoria terminus","chhatrapati shivaji maharaj terminus","chhatrapati shivaji terminus","chatrapati shivaji maharaj terminus","shivaji maharaj terminus","shivaji terminus","crawford market"], dev:["सीएसएमटी","सीएसटी","व्हीटी","वीटी","छत्रपती शिवाजी महाराज टर्मिनस"]},
     {id:24, name:"Hutatma Chowk", short:"Hutatma Chowk", q:"Hutatma Chowk", tag:"",
-      lat:["hutatma chowk","hutatma","flora fountain","fort"], dev:["हुतात्मा चौक","हुतात्मा","फ्लोरा फाउंटन","फोर्ट"]},
+      lat:["hutatma chowk","hutatma chauk","hutatma","flora fountain","fountain","fort","horniman circle","high court","bombay high court","stock exchange","bse","dalal street","kala ghoda"], dev:["हुतात्मा चौक","हुतात्मा","फ्लोरा फाउंटन","फोर्ट"]},
     {id:25, name:"Churchgate", short:"Churchgate", q:"Churchgate Metro", tag:"Local: Western",
-      lat:["churchgate","church gate"], dev:["चर्चगेट","चर्च गेट"]},
+      lat:["churchgate","church gate","church get","wankhede","wankhede stadium","oval maidan"], dev:["चर्चगेट","चर्च गेट"]},
     {id:26, name:"Vidhan Bhavan", short:"Vidhan Bhavan", q:"Vidhan Bhavan", tag:"",
-      lat:["vidhan bhavan","vidhan bhawan","vidhan","nariman point","mantralaya"], dev:["विधान भवन","विधानभवन","नरिमन पॉइंट","मंत्रालय"]},
+      lat:["vidhan bhavan","vidhan bhawan","vidhan sabha","vidhansabha","vidhan","nariman point","mantralaya"], dev:["विधान भवन","विधानभवन","नरिमन पॉइंट","मंत्रालय"]},
     {id:27, name:"Cuffe Parade", short:"Cuffe Parade", q:"Cuffe Parade", tag:"",
-      lat:["cuffe parade","cuff parade","kaf parade","cuffe","colaba","wtc","world trade centre","world trade center"], dev:["कफ परेड","कफपरेड","कुलाबा"]},
+      lat:["cuffe parade","cuff parade","kaf parade","cafe parade","coffee parade","cuffe","colaba","wtc","world trade centre","world trade center","badhwar park"], dev:["कफ परेड","कफपरेड","कुलाबा"]},
   ];
   const AMBIG = [
     {lat:["bandra"], dev:["बांद्रा","वांद्रे"], ids:[9,10]},
-    {lat:["airport","vimantal","viman tal"], dev:["एअरपोर्ट","एयरपोर्ट","विमानतळ","हवाई अड्डा","एअर पोर्ट"], ids:[5,7]},
+    {lat:["airport","vimantal","viman tal","mumbai airport"], dev:["एअरपोर्ट","एयरपोर्ट","विमानतळ","हवाई अड्डा","एअर पोर्ट"], ids:[5,7]},
   ];
   const HOME = {lat:["home","ghar","ghari","gharee","ghar pe"], dev:["घर","घरी"]};
 
   const FROM_W = new Set(["se","sey","say","sae","hun","hoon","varun","warun","pasun","madhun","madun","से","हून","वरून","पासून","मधून","सें"]);
   const TO_W = new Set(["la","laa","tak","ko","paryant","jana","jaana","janaa","jaycha","jaaycha","jaychay","jaaychay","jayche","jaaych","chalo","jao","jaa","ला","तक","को","पर्यंत","जाना","जायचं","जायचंय","जायचे","जायचय","जायचा","चलो","जाऊ","जा"]);
-  const PREV_FROM = new Set(["from","frm"]);
-  const PREV_TO = new Set(["to","till","towards","for"]);
+  const PREV_FROM = new Set(["from","frm","form","leaving","starting"]);
+  const PREV_TO = new Set(["to","till","towards","for","upto","until"]);
   const DEV_FROM_SUF = ["हून","वरून","पासून","मधून","से"];
   const DEV_TO_SUF = ["पर्यंत","ला","तक","को"];
   const LAT_SUF = new Set(["la","ne","se","ko","hun","pe","tak"]);
-  const STOP = new Set(["world","metro","station","ticket","going","jaana","want","please","book","from","road","line","there","where","colony","central","complex","terminal","airport","chowk","mandir","devi"]);
+  // Everyday words that must never be fuzzy-matched to a station on their own.
+  const STOP = new Set(["world","metro","station","ticket","tickets","going","coming","jaana","want","need","please","book","from","road","line","there","where","colony","central","complex","terminal","airport","chowk","mandir","devi","return","people","person","single","today","about","morning","evening","office","mumbai","parade","centre","center","market","church","garden","street","point"]);
+  // Short names that can arrive split up or spelled out by the dictation: "b k c", "see SMT", "mid c".
+  const ACR = new Set(["bkc","csmt","cst","cstm","vt","t1","t2","midc","jvlr","wtc","seepz","jss","nmacc","bse","mmrda"]);
+  const SOUND = new Map(Object.entries({ay:"a",bee:"b",be:"b",see:"c",sea:"c",si:"c",dee:"d",de:"d",ef:"f",eff:"f",jay:"j",kay:"k",ke:"k",key:"k",el:"l",ell:"l",em:"m",en:"n",oh:"o",pee:"p",pea:"p",are:"r",ar:"r",es:"s",ess:"s",tee:"t",tea:"t",ti:"t",vee:"v",ve:"v",zed:"z",zee:"z",one:"1",won:"1",two:"2",to:"2",too:"2"}));
 
   const DEVDIG = "०१२३४५६७८९";
   function norm(s){
     let t = String(s||"").normalize("NFC").toLowerCase();
     t = t.replace(/[़‌‍]/g,"").replace(/[०-९]/g, d => String(DEVDIG.indexOf(d)));
     t = t.replace(/[^a-z0-9ऀ-ॿ]+/g," ").trim();
-    // join spelled-out acronyms: "b k c" -> "bkc", "t 2" -> "t2"
+    // join spelled-out acronyms: "b k c" -> "bkc"
     const tok = t.split(" "), out = [];
     for (let i=0;i<tok.length;){
-      if (tok[i].length===1 && /[a-z0-9]/.test(tok[i])){
+      if (/^[a-z]$/.test(tok[i])){
         let j=i, g="";
-        while (j<tok.length && tok[j].length===1 && /[a-z0-9]/.test(tok[j])) g+=tok[j++];
-        if (j-i>=2 && /[a-z]/.test(g)) { out.push(g); i=j; continue; }
+        while (j<tok.length && /^[a-z]$/.test(tok[j])) g+=tok[j++];
+        if (j-i>=2){
+          // "a b k c" is the word "a" followed by BKC
+          if (!ACR.has(g) && (g[0]==="a"||g[0]==="i") && ACR.has(g.slice(1))) out.push(g[0], g.slice(1)); else out.push(g);
+          i=j; continue;
+        }
       }
       out.push(tok[i]); i++;
     }
-    return out.join(" ");
+    return out.join(" ").replace(/\bt (1|2)\b/g,"t$1");
   }
   const isDev = s => /[ऀ-ॿ]/.test(s);
-
-  const ENTRIES = [];
-  function add(list, kind, ids){ for (const a of list){ const n = norm(a); if (n) ENTRIES.push({a:n, dev:isDev(n), kind, ids}); } }
-  for (const st of S) if (st){ add(st.lat,"station",[st.id]); add(st.dev,"station",[st.id]); }
-  for (const am of AMBIG){ add(am.lat,"ambig",am.ids); add(am.dev,"ambig",am.ids); }
-  add(HOME.lat,"home",null); add(HOME.dev,"home",null);
+  const words = t => { const out=[]; const re=/\S+/g; let m; while((m=re.exec(t))) out.push({w:m[0], s:m.index, e:m.index+m[0].length}); return out; };
 
   function lev(a,b){
     const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
@@ -248,6 +309,89 @@ const Engine = (() => {
     for(let i=1;i<=m;i++){ cur[0]=i; for(let j=1;j<=n;j++){ cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1)); } [prev,cur]=[cur,prev]; }
     return prev[n];
   }
+  // Rough sound key, so "cafe parade" and "cuffe parade" or "mahalakshmi" and "mahalaxmi" compare equal.
+  function pkey(s){
+    const t = s.replace(/ch/g,"C").replace(/ck/g,"k").replace(/c(?=[eiy])/g,"s").replace(/c/g,"k").replace(/q/g,"k")
+      .replace(/ksh/g,"ks").replace(/sh/g,"s").replace(/z/g,"s").replace(/x/g,"ks").replace(/ph/g,"f").replace(/w/g,"v")
+      .replace(/([tdbgkj])h/g,"$1").replace(/(.)\1+/g,"$1");
+    return t[0] + t.slice(1).replace(/[aeiouyh]/g,"");
+  }
+
+  const ENTRIES = [];
+  function add(list, kind, ids){ for (const a of list){ const n = norm(a); if (n) ENTRIES.push({a:n, dev:isDev(n), kind, ids}); } }
+  for (const st of S) if (st){ add(st.lat,"station",[st.id]); add(st.dev,"station",[st.id]); }
+  for (const am of AMBIG){ add(am.lat,"ambig",am.ids); add(am.dev,"ambig",am.ids); }
+  add(HOME.lat,"home",null); add(HOME.dev,"home",null);
+  const SQMAP = new Map(), LAT = [];
+  for (const en of ENTRIES) if (!en.dev){
+    en.sq = en.a.replace(/ /g,""); en.pk = pkey(en.sq);
+    if (!SQMAP.has(en.sq)) SQMAP.set(en.sq, en);
+    if (en.sq.length>=5) LAT.push(en);
+  }
+
+  // ---- ticket count and trip type ----
+  const mapOf = o => new Map(Object.entries(o).map(([k,v]) => [norm(k), v]));
+  const setOf = a => new Set(a.map(norm));
+  const NUM = mapOf({"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":10,"11":11,"12":12,
+    a:1,an:1,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,
+    ek:1,do:2,don:2,teen:3,tin:3,char:4,chaar:4,paanch:5,panch:5,pach:5,paach:5,chhe:6,che:6,chhah:6,chah:6,saha:6,saat:7,aath:8,
+    "एक":1,"दो":2,"दोन":2,"तीन":3,"चार":4,"पाच":5,"पांच":5,"पाँच":5,"छह":6,"छः":6,"छे":6,"सहा":6,"सात":7,"आठ":8});
+  // Number words the dictation gets wrong. Trusted only when a word like "tickets" follows.
+  const SOFT = mapOf({to:2,too:2,tu:2,tow:2,won:1,tree:3});
+  const GROUP = mapOf({both:2,couple:2,dono:2,donon:2,doghe:2,dogha:2,tighe:3,teeno:3,chaughe:4,charo:4,
+    "दोनों":2,"दोनो":2,"दोघे":2,"दोघं":2,"दोघांसाठी":2,"दोघांचे":2,"दोघांचं":2,"दोघांना":2,"तिघे":3,"तिघांसाठी":3,"तिघांचे":3,"तीनों":3,"चौघे":4,"चौघांसाठी":4,"चारों":4});
+  const UNIT = setOf(["ticket","tickets","tkt","tkts","tix","people","persons","person","pax","passenger","passengers","adult","adults","log","logon","logo","jan","jann","jane","jana","seats","members",
+    "टिकट","टिकटें","टिकिट","तिकीट","तिकिट","तिकिटे","तिकिटं","तिकीटं","जण","जणं","जणांचे","जणांचं","जणांसाठी","लोग","लोगों","लोक","माणसं","माणसे"]);
+  const FILL = new Set(["·","more","full","metro","aqua","extra"]);
+  const JOUR = setOf(["journey","trip","fare","ka","ki","का","की","ची","चे","चं"]);
+  const WE = setOf(["we","hum","ham","aamhi","amhi","आम्ही","हम"]);
+  const LINE_W = setOf(["line","metro","लाइन","लाईन"]);
+  const BARE_SKIP = new Set(["a","an","do"]);
+  const phr = a => a.map(p => norm(p).split(" ")).sort((x,y) => y.length-x.length);
+  const RET_P = phr(["round trip","roundtrip","both ways","both way","two way","two ways","2 way","2 ways","up down","up and down","updown","to and fro",
+    "aana jaana","ana jana","aane jaane","ane jane","jaana aana","jana aana","jaake aana","jake aana","wapsi","vapsi","wapasi","jaun yeun","yeun jaun",
+    "जाऊन येऊन","येऊन जाऊन","आना जाना","आने जाने","जाना आना","वापसी","परतीचे","परतीचं","परतीचा","दोन्ही बाजू","दोनों तरफ","रिटर्न","रिटन"]);
+  const SINGLE_P = phr(["one way","oneway","1 way","one side","single journey","single","ek taraf","ek tarfa","ek side","sirf jana","एकेरी","एक तरफा","एक तरफ","एकतर्फी","सिंगल"]);
+  // "return" is a ticket type in "two return tickets" and "Dadar return", but a plain trip in "return to Dadar".
+  const RET_W = new Set(["return","returns","retan","ritan","ritarn","riturn","rtn"]);
+  const NOT_RET_NEXT = new Set(["to","from","back","se","towards","till","§h"]);
+
+  function details(t, ms){
+    const w = words(t).map(x => { const h = ms.find(h => x.s<h.end && x.e>h.start); return h ? (h.kind==="home" ? "§h" : "§") : x.w; });
+    const at = i => (i>=0 && i<w.length) ? w[i] : "";
+    for (let i=0;i<w.length-1;i++) if (LINE_W.has(w[i]) && /^(3|three|teen|तीन)$/.test(w[i+1])){ w[i]="·"; w[i+1]="·"; }
+    let ret = null;
+    const strip = (list, val) => { for (const p of list) for (let i=0;i+p.length<=w.length;i++) if (p.every((x,k) => w[i+k]===x)){ for (let k=0;k<p.length;k++) w[i+k]="·"; if (ret===null) ret=val; } };
+    strip(RET_P, true); strip(SINGLE_P, false);
+    const ticketish = x => UNIT.has(x) || JOUR.has(x);
+    for (let i=0;i<w.length;i++) if (RET_W.has(w[i])){
+      const a=at(i+1), b=at(i+2);
+      if (NOT_RET_NEXT.has(a) && !ticketish(a)) continue;
+      if (ticketish(a) || ticketish(b) || !NOT_RET_NEXT.has(a)){ w[i]="·"; ret=true; }
+    }
+    let n = null;
+    for (let i=0;i<w.length && n==null;i++){
+      const v = NUM.has(w[i]) ? NUM.get(w[i]) : SOFT.get(w[i]);
+      if (v==null) continue;
+      let j=i+1, f=0; while (FILL.has(at(j)) && f<2){ j++; f++; }
+      if (UNIT.has(at(j))) n=v;
+    }
+    if (n==null) for (const x of w) if (GROUP.has(x)){ n=GROUP.get(x); break; }
+    if (n==null) for (let i=0;i<w.length;i++){
+      if (!NUM.has(w[i]) || w[i]==="a" || w[i]==="an") continue;
+      const p=at(i-1), p2=at(i-2), q=at(i+1), q2=at(i+2);
+      if (p==="for" || (q==="of" && q2==="us") || WE.has(p) || (p==="are" && WE.has(p2)) || (q==="ke" && q2==="liye") || q==="hain"){ n=NUM.get(w[i]); break; }
+    }
+    if (n==null){
+      const real = w.map((x,i) => x==="·" ? -1 : i).filter(i => i>=0);
+      for (const i of [real[0], real[real.length-1]]) if (i!==undefined && NUM.has(w[i]) && !BARE_SKIP.has(w[i])){ n=NUM.get(w[i]); break; }
+    }
+    const over = n!=null && n>6;
+    return {count: n==null ? null : Math.max(1, Math.min(6,n)), over, ret};
+  }
+
+  // ---- station names ----
+  const BLOCK = new Set([...FROM_W,...TO_W,...PREV_FROM,...PREV_TO,...NUM.keys(),...SOFT.keys(),...GROUP.keys(),...UNIT,...RET_W,...WE,"way","ways","side"]);
 
   function findMentions(text){
     const t = norm(text);
@@ -273,18 +417,40 @@ const Engine = (() => {
     const free = (s,e) => taken.every(h => e<=h.start || s>=h.end);
     for (const h of hits) if (free(h.start,h.end)) taken.push(h);
 
-    // fuzzy pass for misheard romanised names
-    const toks = []; { const re=/\S+/g; let m; while((m=re.exec(t))) toks.push({w:m[0], s:m.index, e:m.index+m[0].length}); }
+    const toks = words(t);
+    // names that arrived in pieces: "sid hi vinayak", "mid c", "see smt", "be kay see"
+    const joined = [];
+    for (let i=0;i<toks.length;i++){
+      for (let k=1;k<=4 && i+k<=toks.length;k++){
+        const s=toks[i].s, e=toks[i+k-1].e; if (!free(s,e)) break;
+        const ws = toks.slice(i,i+k).map(x=>x.w);
+        if (ws.some(isDev)) break;
+        const raw = ws.join("");
+        let en = (raw.length>=5 || (k>1 && ACR.has(raw))) ? SQMAP.get(raw) : null;
+        if (!en && k>1){
+          const sj = ws.map(x => SOUND.has(x) ? SOUND.get(x) : (x.length<=4 ? x : null));
+          if (!sj.includes(null)){ const j = sj.join(""); if (j!==raw && ACR.has(j)) en = SQMAP.get(j); }
+        }
+        if (en) joined.push({start:s,end:e,len:en.a.length,suffix:"",kind:en.kind,ids:en.ids,how:"joined"});
+      }
+    }
+    joined.sort((x,y)=> (y.end-y.start)-(x.end-x.start));
+    for (const c of joined) if (free(c.start,c.end)) taken.push(c);
+
+    // misheard romanised names: close spelling or the same sound
     const cands = [];
     for (let i=0;i<toks.length;i++){
       for (let k=1;k<=3 && i+k<=toks.length;k++){
         const s=toks[i].s, e=toks[i+k-1].e; if (!free(s,e)) break;
-        const phrase = t.slice(s,e);
-        if (isDev(phrase) || phrase.replace(/ /g,"").length<5) continue;
-        if (k===1 && STOP.has(phrase)) continue;
-        for (const en of ENTRIES){
-          if (en.dev || en.a.length<5 || en.a[0]!==phrase[0]) continue;
-          const sim = 1 - lev(phrase,en.a)/Math.max(phrase.length,en.a.length);
+        const ws = toks.slice(i,i+k).map(x=>x.w);
+        if (ws.some(x => BLOCK.has(x) || isDev(x))) break;
+        const phrase = ws.join(" "), sq = ws.join("");
+        if (sq.length<5 || ws.every(x => STOP.has(x))) continue;
+        const pk = pkey(sq);
+        for (const en of LAT){
+          let sim = 0;
+          if (en.sq[0]===sq[0]) sim = Math.max(1-lev(phrase,en.a)/Math.max(phrase.length,en.a.length), 1-lev(sq,en.sq)/Math.max(sq.length,en.sq.length));
+          if (pk.length>=4 && pk===en.pk) sim = Math.max(sim,0.86);
           if (sim>=0.8) cands.push({start:s,end:e,len:en.a.length,suffix:"",kind:en.kind,ids:en.ids,how:"fuzzy",sim});
         }
       }
@@ -315,29 +481,39 @@ const Engine = (() => {
     return taken;
   }
 
-  // ctx: {home, origin, dest}. Returns {ok, origin, dest, ask}
+  // ctx: {home, origin, dest}.
+  // Returns {ok, origin, dest, ask, said:{o,d}, count, over, ret, score}.
+  //   said  = which ends of the trip the speaker actually named (the other one was filled in from ctx)
+  //   count = tickets, 1-6, or null when not said. over = they asked for more than 6.
+  //   ret   = true for a return ticket, false for an explicit single, null when not said.
   function interpret(text, ctx){
-    const raw = findMentions(text);
+    ctx = ctx || {};
+    const t = norm(text);
+    const raw = findMentions(t);
+    const det = details(t, raw);
+    const extra = (det.count!=null ? 0.5 : 0) + (det.ret!==null ? 0.5 : 0);
     const ms = [];
     for (const m of raw){
       const ids = m.kind==="home" ? (ctx.home ? [ctx.home] : null) : m.ids;
       if (!ids) continue;
       const last = ms[ms.length-1];
       if (last && last.ids.length===1 && ids.length===1 && last.ids[0]===ids[0]) continue;
-      ms.push({ids, role:m.role, kind:m.kind});
+      ms.push({ids, role:m.role, kind:m.kind, how:m.how});
     }
-    if (!ms.length) return {ok:false};
+    const res = {ok:false, origin:null, dest:null, ask:null, said:{o:false,d:false}, count:det.count, over:det.over, ret:det.ret, score:extra};
+    if (!ms.length) return res;
+    res.ok = true;
     let o=null, d=null;
     if (ms.length>=2){
       const [a,b] = ms;
       if (a.role==="to" || b.role==="from") { o=b; d=a; } else { o=a; d=b; }
+      res.said = {o:true, d:true};
     } else if (ms[0].role==="from"){
-      o = ms[0];
-      d = ms[0].ids.includes(ctx.home) ? null : {ids:[ctx.home]};
+      o = ms[0]; res.said.o = true;
+      d = (!ctx.home || ms[0].ids.includes(ctx.home)) ? null : {ids:[ctx.home]};
     } else {
-      d = ms[0];
+      d = ms[0]; res.said.d = true;
     }
-    const res = {ok:true, origin:null, dest:null, ask:null};
     if (d){ if (d.ids.length===1) res.dest=d.ids[0]; else res.ask={role:"dest", ids:d.ids}; }
     if (o){ if (o.ids.length===1) res.origin=o.ids[0]; else if (!res.ask) res.ask={role:"origin", ids:o.ids}; }
     if (!o){
@@ -347,6 +523,7 @@ const Engine = (() => {
       else if (ctx.home && ctx.home!==target) res.origin = ctx.home;
     }
     if (res.origin && res.origin===res.dest) res.origin=null;
+    for (const m of [o,d]) if (m && m.how) res.score += (m.ids.length===1 ? 2 : 1.5) + (m.how==="exact" ? 0.3 : m.how==="joined" ? 0.2 : 0);
     return res;
   }
 
@@ -357,8 +534,11 @@ const Engine = (() => {
     if (pc>1) p.set("pc", String(pc));
     return "https://www.ixigo.com/book-metro-ticket/?" + p.toString();
   }
+  // The official MMRC ticket bot. This opens the chat with "Hi" typed; the trip cannot be passed in.
+  const WA_NUMBER = "919873016836";
+  const waUrl = () => "https://wa.me/" + WA_NUMBER + "?text=Hi";
 
-  return {S, norm, findMentions, interpret, ixigoUrl};
+  return {S, norm, findMentions, interpret, ixigoUrl, waUrl};
 })();
 /*ENGINE-END*/
 
@@ -368,19 +548,12 @@ const Extra = (() => {
   const XY = [null,[19.131079,72.884324],[19.1257536,72.873437],[19.117373,72.873829],[19.1081288,72.8794774],[19.102033,72.874445],[19.102128,72.864803],[19.093908,72.853554],[19.078981,72.8469045],[19.0699738,72.849432],[19.060417,72.85492],[19.0461986,72.8498021],[19.0395229,72.8416478],[19.0228548,72.8385778],[19.0165474,72.8297123],[19.0087,72.819401],[18.997126,72.818179],[18.9918142,72.8207246],[18.979485,72.825295],[18.970603,72.821382],[18.9629438,72.8180146],[18.951929,72.822606],[18.9470909,72.8262888],[18.9401035,72.8341311],[18.934579,72.832826],[18.930663,72.826163],[18.9240959,72.8250061],[18.912955,72.820196]];
   function km(a,b,c,d){const R=6371,r=x=>x*Math.PI/180;const h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
   function nearest(lat,lng){let best=null;for(let i=1;i<XY.length;i++){const d=km(lat,lng,XY[i][0],XY[i][1]);if(!best||d<best.d)best={id:i,d};}return best;}
-  const NUM = {"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,one:1,two:2,three:3,four:4,five:5,six:6,ek:1,do:2,don:2,teen:3,tin:3,char:4,chaar:4,paanch:5,panch:5,pach:5,chhe:6,"एक":1,"दो":2,"दोन":2,"तीन":3,"चार":4,"पाच":5,"पांच":5,"छह":6,"सहा":6};
-  const UNIT = new Set(["people","persons","person","log","logon","logo","tickets","ticket","jan","jann","jana","passengers","passenger","adults","जण","जणांचे","जणांसाठी","लोग","लोगों","टिकट","तिकीट","तिकिटे","तिकिट"]);
-  function people(normText){
-    const t = normText.split(" ");
-    for (let i=0;i<t.length-1;i++) if (NUM[t[i]] && UNIT.has(t[i+1])) return Math.min(6, NUM[t[i]]);
-    return null;
-  }
-  return {nearest, people};
+  return {nearest};
 })();
 /*EXTRA-END*/
 
 (() => {
-  const {S, norm, interpret, ixigoUrl} = Engine;
+  const {S, interpret, ixigoUrl, waUrl} = Engine;
   const $ = id => document.getElementById(id);
   const store = {
     get(k,d){try{const v=localStorage.getItem("aqt."+k);return v===null?d:JSON.parse(v);}catch{return d;}},
@@ -388,16 +561,21 @@ const Extra = (() => {
   };
   const cfg = {
     home: store.get("home",null), lang: store.get("lang","en-IN"),
-    autoListen: store.get("autoListen",true), useGps: store.get("useGps",true), autoGo: store.get("autoGo",true),
+    autoListen: store.get("autoListen",true), useGps: store.get("useGps",true),
   };
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const HINT = "“2 tickets to CSMT” · “BKC return” · “चर्चगेट वरून घरी”";
 
-  // ---------- settings ----------
-  for (const sel of [$("home"),$("eFrom"),$("eTo")]) for (const s of S) if (s){const o=document.createElement("option");o.value=s.id;o.textContent=s.name;sel.appendChild(o);}
-  {const ph=document.createElement("option");ph.value="";ph.textContent="Choose your home station";$("home").prepend(ph);} $("home").value=cfg.home||""; $("lang").value=cfg.lang;
-  $("autoListen").checked=cfg.autoListen; $("useGps").checked=cfg.useGps; $("autoGo").checked=cfg.autoGo;
+  // ---------- station pickers and settings ----------
+  function fill(sel, placeholder){
+    const ph=document.createElement("option"); ph.value=""; ph.textContent=placeholder; sel.appendChild(ph);
+    for (const s of S) if (s){ const o=document.createElement("option"); o.value=s.id; o.textContent=s.name; sel.appendChild(o); }
+  }
+  fill($("home"),"Choose your home station"); fill($("cFrom"),"Choose station"); fill($("cTo"),"Choose station");
+  $("home").value=cfg.home||""; $("lang").value=cfg.lang;
+  $("autoListen").checked=cfg.autoListen; $("useGps").checked=cfg.useGps;
   for (const k of ["home","lang"]) $(k).addEventListener("change",()=>{cfg[k]=k==="home"?(+$(k).value||null):$(k).value;store.set(k,cfg[k]);});
-  for (const k of ["autoListen","useGps","autoGo"]) $(k).addEventListener("change",()=>{cfg[k]=$(k).checked;store.set(k,cfg[k]);if(k==="useGps"&&cfg.useGps)locate();});
+  for (const k of ["autoListen","useGps"]) $(k).addEventListener("change",()=>{cfg[k]=$(k).checked;store.set(k,cfg[k]);if(k==="useGps"&&cfg.useGps)locate();});
   const toggleSettings = open => { $("settings").hidden=!open; $("stage").hidden=open; $("gear").setAttribute("aria-expanded",open); };
   $("gear").addEventListener("click",()=>toggleSettings($("settings").hidden));
   $("closeSettings").addEventListener("click",()=>toggleSettings(false));
@@ -415,22 +593,112 @@ const Extra = (() => {
   }
   const waitGps = () => new Promise(res=>{const t0=Date.now();(function tick(){if(!gpsPending||Date.now()-t0>2500)return res();setTimeout(tick,150);})();});
 
-  // ---------- view helpers ----------
+  // ---------- the trip on screen ----------
+  // trip: {o, d, pc, ret, ask:{role,ids}|null, fromGps, over, heard}
+  let trip = null;
   const talk=$("talk"), status=$("status"), said=$("said");
-  let rec=null, listening=false, timer=null, trip=null;
-  function show(which){ for (const id of ["result","askCard","editCard"]) $(id).hidden = id!==which; }
   function setStatus(t, s){ status.textContent=t; if (s!==undefined) said.textContent=s; }
-  function cancelTimer(){ if(timer){clearInterval(timer);timer=null;} $("bar").style.width="0"; }
+  const tripOk = () => !!(trip && trip.o && trip.d && trip.o!==trip.d && !trip.ask);
+
+  function chips(box, ids, onPick){
+    box.textContent=""; box.hidden = !ids;
+    if (!ids) return;
+    for (const id of ids){
+      const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=S[id].name;
+      b.addEventListener("click",()=>onPick(id)); box.appendChild(b);
+    }
+  }
+  function pick(k, id){
+    const other = k==="o" ? "d" : "o";
+    trip[k]=id; trip.ask=null;
+    if (k==="o") trip.fromGps=false;
+    if (trip[other]===id) trip[other] = (k==="d" && cfg.home && cfg.home!==id) ? cfg.home : null;
+    render();
+  }
+  function quick(){
+    const box=$("quick"); box.textContent="";
+    const last=store.get("last",null);
+    if (last && S[last.o] && S[last.d]){
+      const age=Date.now()-last.t;
+      const mk=(label,o,d,ret)=>{
+        const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=label;
+        b.addEventListener("click",()=>{ trip={o,d,pc:last.pc||1,ret,ask:null,fromGps:false,over:false,heard:null}; render(); });
+        box.appendChild(b);
+      };
+      if (age < 18*3600e3) mk(`Trip back · ${S[last.d].short} → ${S[last.o].short}`, last.d, last.o, false);
+      if (age < 30*86400e3) mk(`Again · ${S[last.o].short} → ${S[last.d].short}`, last.o, last.d, !!last.ret);
+    }
+    box.hidden = !box.children.length;
+  }
+
+  function render(){
+    const has = !!trip;
+    $("stage").classList.toggle("has-trip", has);
+    $("confirm").hidden = !has; $("reset").hidden = !has;
+    if (!has){ setStatus(SR ? "Tap and say your trip" : "Where are you going?", HINT); quick(); return; }
+    $("quick").hidden = true;
+    const {o,d,pc,ret,ask} = trip;
+    $("cFrom").value = o||""; $("vFrom").textContent = o ? S[o].name : "Choose station"; $("vFrom").classList.toggle("empty", !o);
+    $("cTo").value = d||""; $("vTo").textContent = d ? S[d].name : "Choose station"; $("vTo").classList.toggle("empty", !d);
+    $("cWhy").hidden = !trip.fromGps;
+    chips($("askFrom"), ask && ask.role==="origin" ? ask.ids : null, id => pick("o", id));
+    chips($("askTo"), ask && ask.role==="dest" ? ask.ids : null, id => pick("d", id));
+    $("cPc").textContent = pc; $("less").disabled = pc<=1; $("more").disabled = pc>=6;
+    $("tSingle").setAttribute("aria-checked", String(!ret)); $("tReturn").setAttribute("aria-checked", String(!!ret));
+
+    const ok = tripOk();
+    const notes = [];
+    if (trip.over) notes.push("One booking can have up to 6 tickets.");
+    if (o && d && o===d) notes.push("From and To are the same station.");
+    if (ok && (o===4 || d===4)) notes.push("ixigo confuses Marol Naka with the Line 1 station, so it is left blank there. Pick the Marol Naka that has the Aqua Line badge.");
+    $("note").hidden = !notes.length; $("note").textContent = notes.join(" ");
+
+    const A=$("payA"), B=$("payB");
+    A.setAttribute("aria-disabled", String(!ok)); B.hidden = !ok;
+    if (ok){
+      A.href = ixigoUrl(o,d,pc); B.href = waUrl();
+      if (ret){
+        A.textContent = "Pay for the trip there"; B.textContent = "Try a return ticket on WhatsApp";
+        $("payHelp").textContent = `ixigo sells single tickets only, so the first button pays for ${S[o].short} → ${S[d].short}. The trip back is saved here as one tap. The official WhatsApp bot may sell return tickets, but you pick the stations again on its page.`;
+      } else {
+        A.textContent = "Confirm & pay"; B.textContent = "Use the official WhatsApp bot";
+        $("payHelp").textContent = "Opens ixigo with this trip filled in. Tap Proceed to Pay there, then choose PhonePe or Google Pay.";
+      }
+    } else {
+      A.href = "#"; A.textContent = "Confirm & pay";
+      $("payHelp").textContent = ask ? "Tap the station you meant." : !o ? "Choose your From station." : !d ? "Choose your To station." : "Choose two different stations.";
+    }
+    setStatus(ask ? "Which one?" : !o ? "Where are you starting?" : !d ? "Where to?" : "Check and pay",
+      trip.heard ? "Heard “"+trip.heard+"”" : "From your last trip");
+  }
+
+  $("cFrom").addEventListener("change",()=>{ trip.o=+$("cFrom").value||null; trip.fromGps=false; if (trip.ask && trip.ask.role==="origin") trip.ask=null; render(); });
+  $("cTo").addEventListener("change",()=>{ trip.d=+$("cTo").value||null; if (trip.ask && trip.ask.role==="dest") trip.ask=null; render(); });
+  $("swap").addEventListener("click",()=>{
+    [trip.o,trip.d]=[trip.d,trip.o]; trip.fromGps=false;
+    if (trip.ask) trip.ask={role:trip.ask.role==="dest"?"origin":"dest", ids:trip.ask.ids};
+    render();
+  });
+  const step = n => { trip.pc=Math.max(1,Math.min(6,trip.pc+n)); trip.over=false; render(); };
+  $("less").addEventListener("click",()=>step(-1));
+  $("more").addEventListener("click",()=>step(1));
+  $("tSingle").addEventListener("click",()=>{ trip.ret=false; render(); });
+  $("tReturn").addEventListener("click",()=>{ trip.ret=true; render(); });
+  $("reset").addEventListener("click",()=>{ trip=null; render(); });
+  for (const id of ["payA","payB"]) $(id).addEventListener("click",e=>{
+    if (!tripOk()){ e.preventDefault(); return; }
+    store.set("last",{o:trip.o,d:trip.d,pc:trip.pc,ret:trip.ret,t:Date.now()});
+  });
 
   // ---------- speech ----------
+  let rec=null, listening=false;
   function listen(){
-    cancelTimer(); show(null);
     if (!SR){ $("typer").hidden=false; $("typed").focus(); setStatus("Voice isn’t available in this browser","Type below, or tap the mic on your keyboard."); return; }
     if (listening){ rec && rec.stop(); return; }
     locate();
     rec = new SR(); rec.lang=cfg.lang; rec.interimResults=true; rec.maxAlternatives=3; rec.continuous=false;
     let finalAlts=null;
-    rec.onstart=()=>{listening=true;talk.classList.add("on");talk.setAttribute("aria-label","Stop listening");setStatus("Listening…","Say where you’re going");};
+    rec.onstart=()=>{listening=true;talk.classList.add("on");talk.setAttribute("aria-label","Stop listening");setStatus("Listening…", trip ? "Say what to change" : "Say your trip");};
     rec.onresult=e=>{
       const r=e.results[e.results.length-1];
       said.textContent="“"+r[0].transcript+"”";
@@ -443,82 +711,58 @@ const Extra = (() => {
     };
     rec.onend=()=>{
       listening=false;talk.classList.remove("on");talk.setAttribute("aria-label","Tap to talk");
-      if (finalAlts) handle(finalAlts);
+      if (finalAlts) handle(finalAlts); else if (trip && status.textContent==="Listening…") render();
     };
-    try{ rec.start(); }catch(err){ setStatus("Tap and say where you’re going"); }
+    try{ rec.start(); }catch(err){ render(); }
   }
   talk.addEventListener("click",listen);
   $("typeInstead").addEventListener("click",()=>{ $("typer").hidden=false; $("typed").focus(); });
-  $("typer").addEventListener("submit",e=>{e.preventDefault(); const v=$("typed").value.trim(); if(v){ said.textContent="“"+v+"”"; handle([v]); } $("typed").blur();});
+  $("typer").addEventListener("submit",e=>{e.preventDefault(); const v=$("typed").value.trim(); if(v){ $("typed").value=""; handle([v]); } $("typed").blur();});
 
   // ---------- understanding ----------
+  // A first phrase makes a trip. Anything said while a trip is on screen changes only the parts that were said.
   async function handle(alts){
     if (gpsPending){ setStatus("Finding your nearest station…"); await waitGps(); }
     const start = here ? here.id : cfg.home;
-    let r=null, used="";
-    for (const a of alts){ const x=interpret(a,{home:cfg.home,origin:start,dest:null}); if (x.ok){ r=x; used=a; break; } }
-    if (!r){ setStatus("No Aqua Line station in that", "Heard “"+alts[0]+"”. Tap and say the station name."); return; }
-    const pc = Extra.people(norm(used)) || 1;
-    const fromGps = !!(here && r.origin===here.id && r.origin!==cfg.home);
-    if (r.ask){
-      setStatus(r.ask.role==="dest" ? "Which one?" : "Starting from which one?");
-      $("askTitle").textContent = "Heard “"+used+"”";
-      const box=$("askChips"); box.textContent="";
-      for (const id of r.ask.ids){
-        const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=S[id].name;
-        b.addEventListener("click",()=>{
-          let o=r.origin, d=r.dest;
-          if (r.ask.role==="dest"){ d=id; if(!o||o===id) o = start!==id ? start : (cfg.home!==id?cfg.home:null); }
-          else o=id;
-          ready(o,d,pc,fromGps,true);
-        });
-        box.appendChild(b);
+    let r=null, used=alts[0];
+    for (const a of alts){ const x=interpret(a,{home:cfg.home,origin:start,dest:null}); if (!r || x.score>r.score){ r=x; used=a; } }
+    const nothing = !r.ok && r.count==null && r.ret===null;
+    if (!trip){
+      if (nothing){ setStatus("I didn’t catch a station","Heard “"+alts[0]+"”. Tap and say it again."); return; }
+      trip = {o:null,d:null,pc:1,ret:false,ask:null,fromGps:false,over:false,heard:used};
+      if (r.ok){
+        trip.o=r.origin; trip.d=r.dest; trip.ask=r.ask;
+        trip.fromGps = !!(here && !r.said.o && r.origin===here.id && r.origin!==cfg.home);
+      } else trip.o = start||null;
+    } else {
+      if (nothing){ setStatus("Nothing changed","Heard “"+alts[0]+"”. Say a station, a number of tickets, or “return”."); return; }
+      if (r.ok){
+        if (r.said.o && r.said.d){ trip.o=r.origin; trip.d=r.dest; trip.ask=r.ask; trip.fromGps=false; }
+        else if (r.said.o){
+          trip.o=r.origin; trip.fromGps=false;
+          trip.ask = r.ask && r.ask.role==="origin" ? r.ask : (trip.ask && trip.ask.role==="origin" ? null : trip.ask);
+          if (trip.o && trip.o===trip.d) trip.d=null;
+        } else {
+          trip.d=r.dest;
+          trip.ask = r.ask && r.ask.role==="dest" ? r.ask : (trip.ask && trip.ask.role==="dest" ? null : trip.ask);
+          if (trip.d && trip.o===trip.d){ trip.o=null; trip.fromGps=false; }
+        }
       }
-      show("askCard"); return;
+      trip.heard = used;
     }
-    if (!r.origin || !r.dest){ openEdit(r.origin, r.dest, pc); setStatus("Where are you starting from?"); return; }
-    ready(r.origin, r.dest, pc, fromGps, false);
+    if (r.count!=null){ trip.pc=r.count; trip.over=r.over; }
+    if (r.ret!==null) trip.ret=r.ret;
+    render();
   }
-
-  function ready(o,d,pc,fromGps,tapped){
-    trip={o,d,pc};
-    $("rFrom").innerHTML=""; $("rFrom").textContent=S[o].name;
-    if (fromGps){ const w=document.createElement("span"); w.className="why"; w.textContent="  nearest to you"; $("rFrom").appendChild(w); }
-    $("rTo").textContent=S[d].name;
-    const n=Math.abs(o-d);
-    $("rSub").textContent=`${pc===1?"1 person":pc+" people"} · ${n} stop${n>1?"s":""}`;
-    $("marol").hidden = !(o===4||d===4);
-    const url=ixigoUrl(o,d,pc); $("go").href=url;
-    setStatus("Got it");
-    show("result");
-    cancelTimer();
-    if (cfg.autoGo && !tapped){
-      $("barWrap").hidden=false;
-      const t0=Date.now(), dur=1800;
-      timer=setInterval(()=>{const p=Math.min(1,(Date.now()-t0)/dur);$("bar").style.width=(p*100)+"%";if(p>=1){cancelTimer();location.assign(url);}},50);
-      setStatus("Got it. Opening payment…");
-    } else $("barWrap").hidden=true;
-  }
-  $("go").addEventListener("click",()=>cancelTimer());
-  $("change").addEventListener("click",()=>{cancelTimer(); if(trip) openEdit(trip.o,trip.d,trip.pc);});
-  function openEdit(o,d,pc){
-    cancelTimer();
-    $("eFrom").value=o||cfg.home||""; $("eTo").value=d||""; $("ePc").value=String(pc||1);
-    show("editCard"); setStatus("Fix it here");
-  }
-  $("eGo").addEventListener("click",()=>{
-    const o=+$("eFrom").value, d=+$("eTo").value, pc=+$("ePc").value;
-    if (!d || o===d){ setStatus("Pick two different stations"); return; }
-    ready(o,d,pc,false,true); location.assign(ixigoUrl(o,d,pc));
-  });
 
   // ---------- start ----------
   const q = new URLSearchParams(location.search).get("q");
   if (cfg.useGps) locate();
+  render();
   if (!cfg.home && !q){ toggleSettings(true); $("home").focus(); }
-  else if (q){ said.textContent="“"+q+"”"; handle([q]); }
+  else if (q) handle([q]);
   else if (SR && cfg.autoListen) listen();
-  else if (!SR){ $("typer").hidden=false; setStatus("Where are you going?","Type it, or tap the mic on your keyboard."); }
+  else if (!SR) $("typer").hidden=false;
 })();
 </script>
 </body>
