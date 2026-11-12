@@ -8,7 +8,7 @@ A one-screen web app for Mumbai Metro Line 3 (the Aqua Line). The user speaks a 
 
 - `index.html`: the whole app. Plain HTML, CSS and JS, with no build step and no dependencies.
 - `manifest.webmanifest`, `icon-192.png`, `icon-512.png`: these let the app be added to a phone's home screen.
-- `tests/engine-test.cjs`: run `node tests/engine-test.cjs`. It checks about 65 phrases and exits 1 if any is understood wrongly. Pass a phrase as an argument to see how that one phrase is understood. Add a check whenever a real phrase is misunderstood.
+- `tests/engine-test.cjs`: run `node tests/engine-test.cjs`. It checks about 65 phrases and the train-time sums, and exits 1 if any is wrong. Pass a phrase as an argument to see how that one phrase is understood. Add a check whenever a real phrase is misunderstood.
 
 ## How index.html is organised
 
@@ -23,12 +23,16 @@ A one-screen web app for Mumbai Metro Line 3 (the Aqua Line). The user speaks a 
   - Station names are matched in three passes, in `findMentions`: exact alias, then names that arrived in pieces or spelled out ("sid hi vinayak", "see SMT", "be kay see"), then close spelling or same sound (80% similarity, or an equal `pkey`).
   - `details` reads the ticket count and trip type from the words that are not station names. "return" counts as a ticket type in "two return tickets" and "Dadar return", but not in "return to Dadar" or "return home".
   - `ixigoUrl(o, d, pc)` and `waUrl()` build the two hand-off links.
-- **`Extra`**: station coordinates, used to pick the nearest station from GPS within 1.5 km.
+- **`Extra`**, between `/*EXTRA-START*/` and `/*EXTRA-END*/` (the test file loads this block too):
+  - station coordinates, used to pick the nearest station from GPS within 1.5 km.
+  - `trains(o, d, date)` returns when trains run from the From station: which end of the line they head for, first and last train, the usual gap between trains, the ride time, and whether the metro is running now. See "Train times" below.
+  - `mapsUrl(o, d)` builds a Google Maps directions link for the trip, which shows the next train.
 - **UI**: a talk button, then a ticket card (`#confirm`).
   - It uses the browser's speech recognition (`webkitSpeechRecognition`) when available. Otherwise it shows a text box.
   - `?q=<text>` in the URL skips listening and handles that text directly. The iPhone Shortcut uses this.
   - The first phrase creates the trip. Anything said or typed while the card is showing changes only the parts that were said ("three tickets", "from Dadar", "make it return").
   - On the card, From and To are native pickers hidden under the station name, tickets is a stepper, and trip is Single or Return. Nothing opens until the user taps a pay button.
+  - Under the stations, a Trains block shows the direction, how often trains come, the last train from that station, and a "See the next train in Google Maps" link. It refreshes every 30 seconds.
   - After a pay button is tapped, the trip is saved as `aqt.last`, and the start screen offers "Trip back" and "Again" chips.
   - Settings (home station, voice language, auto-listen, use GPS) are kept in `localStorage` under keys starting `aqt.`.
 
@@ -46,6 +50,16 @@ A one-screen web app for Mumbai Metro Line 3 (the Aqua Line). The user speaks a 
 ### Official WhatsApp bot
 
 `https://wa.me/919873016836?text=Hi` opens the chat with "Hi" typed. The bot replies with a Buy Ticket link to a page on `transit.pelocal.net`. That link is issued per session and expires, and the page takes no trip details from its address, so the user picks the stations again there. It needs no login.
+
+## Train times
+
+Checked on 12 Nov 2026. **The metro publishes no train-by-train timetable**, so the app cannot show an exact departure time for a station in the middle of the line.
+
+- Published: the first train leaves each end of the line (Aarey JVLR and Cuffe Parade) at 5:55 AM and the last at 10:30 PM. At weekday peak a train runs every 4 min 25 s (MMRC, from 2 Nov 2026).
+- Estimated in `Extra`: times at other stations (the end-of-line time plus a share of the 54-minute end-to-end run, by distance), the ride time, and the gap between trains outside weekday peak (4–7 min on weekdays, 6–10 on Saturdays, 10 on Sundays). The card says "about" for every estimate. The last-train estimate deliberately errs early.
+- The official site (`mmrcl.com`, data from `portal.mmrcl.com`) has a first-and-last-train slot on each station page, but it is empty, and its trip planner returns no times. Its code names an "upcoming trains" feed that does not exist yet (404). If that feed goes live, it would be the source for real times.
+- Google Maps has a next-train time for Line 3 ("6:18 PM from Jagannath Shankar Sheth Metro · every 5 min"). The app links to it and does not copy its data.
+- Update `FIRST`, `LAST`, `RUN` and the `GAP` values in `Extra` when MMRC changes the timetable. Festival days (for example Ganeshotsav) run later than usual, and the app does not know about them.
 
 ## Constraints
 

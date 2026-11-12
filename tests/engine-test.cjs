@@ -108,5 +108,41 @@ for (const [p, want] of cases) {
   if (errs.length) bad++;
   console.log((errs.length ? 'FAIL ' : 'ok   ') + JSON.stringify(p).padEnd(42), show(r) + (errs.length ? '\n       ^ ' + errs.join('; ') : ''));
 }
-console.log(`\n${cases.length - bad} of ${cases.length} checks passed`);
+// ---- train times (the Extra block) ----
+// Only the first and last train at the two ends of the line are published, so the checks on other stations use ranges.
+const xsrc = html.slice(html.indexOf('/*EXTRA-START*/'), html.indexOf('/*EXTRA-END*/'));
+const X = new Function(xsrc + ';return Extra;')();
+const at = s => new Date(s + '+05:30'); // Mumbai time
+const hm = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+const between = (v, lo, hi) => v >= lo && v <= hi;
+const T = (o, d, when) => X.trains(o, d, at(when));
+const timeCases = [
+  ['Cuffe Parade to Aarey: exact first 5:55 and last 22:30', () => { const t = T(27, 1, '2026-11-12T12:00'); return t.exact && t.first === 355 && t.last === 1350 && t.towards === 1 && t.ride === 54; }],
+  ['Aarey to Cuffe Parade: exact first 5:55 and last 22:30', () => { const t = T(1, 27, '2026-11-12T12:00'); return t.exact && t.first === 355 && t.last === 1350 && t.towards === 27; }],
+  ['home to BKC: towards Aarey, ride about 20 min', () => { const t = T(19, 10, '2026-11-12T12:00'); return !t.exact && t.towards === 1 && t.from === 27 && between(t.ride, 18, 24); }],
+  ['home to BKC: first train 6:05–6:20, last 22:38–22:55', () => { const t = T(19, 10, '2026-11-12T12:00'); return between(t.first, 365, 380) && between(t.last, 1358, 1375); }],
+  ['home to CSMT: towards Cuffe Parade', () => { const t = T(19, 23, '2026-11-12T12:00'); return t.towards === 27 && t.from === 1; }],
+  ['later stations get later trains', () => T(10, 1, '2026-11-12T12:00').last > T(19, 1, '2026-11-12T12:00').last],
+  ['Thursday noon: running, every 4–7 min', () => { const t = T(19, 10, '2026-11-12T12:00'); return t.state === 'running' && t.gap.join() === '4,7'; }],
+  ['Saturday: every 6–10 min', () => T(19, 10, '2026-11-14T12:00').gap.join() === '6,10'],
+  ['Sunday: every 10 min', () => T(19, 10, '2026-11-15T12:00').gap.join() === '10,10'],
+  ['4:00 AM: before the first train', () => T(19, 10, '2026-11-12T04:00').state === 'before'],
+  ['12:30 AM: before the first train', () => T(19, 10, '2026-11-12T00:30').state === 'before'],
+  ['10:20 PM at Cuffe Parade: last train in 10 min', () => { const t = T(27, 1, '2026-11-12T22:20'); return t.state === 'ending' && t.left === 10; }],
+  ['10:45 PM at home: the last train may still be coming', () => T(19, 10, '2026-11-12T22:45').state === 'ending'],
+  ['10:31 PM at Cuffe Parade: closed', () => T(27, 1, '2026-11-12T22:31').state === 'closed'],
+  ['11:30 PM: closed', () => T(19, 10, '2026-11-12T23:30').state === 'closed'],
+  ['Google Maps link uses transit and both stations', () => { const u = X.mapsUrl(19, 10); return u.startsWith('https://www.google.com/maps/dir/?api=1&origin=18.970603%2C72.821382&destination=19.060417%2C72.85492') && u.endsWith('&travelmode=transit'); }],
+];
+console.log('');
+for (const [label, fn] of timeCases) {
+  let pass = false, err = '';
+  try { pass = !!fn(); } catch (e) { err = '  (error: ' + e.message + ')'; }
+  if (!pass) bad++;
+  console.log((pass ? 'ok   ' : 'FAIL ') + label + err);
+}
+{ const t = T(19, 10, '2026-11-12T12:00'); console.log(`     (home to BKC works out as: first ${hm(t.first)}, last ${hm(t.last)}, ride ${t.ride} min)`); }
+
+const total = cases.length + timeCases.length;
+console.log(`\n${total - bad} of ${total} checks passed`);
 process.exit(bad ? 1 : 0);

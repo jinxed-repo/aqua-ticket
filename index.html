@@ -80,6 +80,13 @@ button,input,select{font:inherit;color:inherit}
 .pickrow select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
 .why{font-size:13px;color:var(--muted)}
 .swap{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;display:grid;place-items:center}
+.trains{display:flex;flex-direction:column;gap:2px;padding:12px 16px 10px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--aqua-soft) 45%,transparent)}
+.trains .th{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.trains .dir{font-size:13px;color:var(--muted);text-align:right}
+.trains .now{margin:2px 0 0;font-family:var(--f-display);font-weight:800;font-size:19px;line-height:1.25}
+.trains.late .now{color:var(--warn)}
+.maplink{align-self:flex-start;display:inline-flex;align-items:center;min-height:40px;color:var(--aqua);font-weight:700;font-size:15px}
+.fine{margin:0;color:var(--muted);font-size:12px}
 .opt{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--line)}
 .stepper{display:flex;align-items:center;gap:6px}
 .stepper button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:22px;font-weight:700;line-height:1;cursor:pointer}
@@ -162,6 +169,13 @@ button,input,select{font:inherit;color:inherit}
         <button class="swap" id="swap" type="button" aria-label="Swap From and To">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4v15M8 4 4.5 7.5M8 4l3.5 3.5M16 20V5M16 20l-3.5-3.5M16 20l3.5-3.5"/></svg>
         </button>
+      </div>
+      <div class="trains" id="trains" hidden>
+        <div class="th"><span class="k">Trains</span><span class="dir" id="tDir"></span></div>
+        <p class="now" id="tNow" aria-live="polite"></p>
+        <p class="help" id="tSub"></p>
+        <a class="maplink" id="tMap" href="#" target="_blank" rel="noopener">See the next train in Google Maps</a>
+        <p class="fine" id="tFine"></p>
       </div>
       <div class="opt">
         <span class="k" id="lblPc">Tickets</span>
@@ -548,7 +562,39 @@ const Extra = (() => {
   const XY = [null,[19.131079,72.884324],[19.1257536,72.873437],[19.117373,72.873829],[19.1081288,72.8794774],[19.102033,72.874445],[19.102128,72.864803],[19.093908,72.853554],[19.078981,72.8469045],[19.0699738,72.849432],[19.060417,72.85492],[19.0461986,72.8498021],[19.0395229,72.8416478],[19.0228548,72.8385778],[19.0165474,72.8297123],[19.0087,72.819401],[18.997126,72.818179],[18.9918142,72.8207246],[18.979485,72.825295],[18.970603,72.821382],[18.9629438,72.8180146],[18.951929,72.822606],[18.9470909,72.8262888],[18.9401035,72.8341311],[18.934579,72.832826],[18.930663,72.826163],[18.9240959,72.8250061],[18.912955,72.820196]];
   function km(a,b,c,d){const R=6371,r=x=>x*Math.PI/180;const h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
   function nearest(lat,lng){let best=null;for(let i=1;i<XY.length;i++){const d=km(lat,lng,XY[i][0],XY[i][1]);if(!best||d<best.d)best={id:i,d};}return best;}
-  return {nearest};
+
+  // ---- train times (checked 12 Nov 2026) ----
+  // The metro publishes no train-by-train timetable, so a time at a station in the middle of the line is an estimate.
+  //   First train 5:55 AM and last train 10:30 PM, from both ends of the line (mmrcl.com and MMRC's notices).
+  //   End to end takes about 54 minutes (reports say 53 to 55).
+  //   Gap between trains: 4 min 25 s at weekday peak (MMRC, from 2 Nov 2026). The rest of each range is worked out from
+  //   trips per day (337 on weekdays, 236 on Saturdays) and from Moovit (6–10 min Mon–Sat, 10 min on Sundays).
+  const FIRST = 5*60+55, LAST = 22*60+30, RUN = 54;
+  const RUN_FAST = 50;              // used for the last train only, so "be there by" errs on the early side
+  const GAP = {Sat:[6,10], Sun:[10,10]}, GAP_WEEKDAY = [4,7];
+  const CUM = [0,0]; for (let i=2;i<XY.length;i++) CUM[i] = CUM[i-1] + km(XY[i-1][0],XY[i-1][1],XY[i][0],XY[i][1]);
+  const part = (a,b) => Math.abs(CUM[a]-CUM[b]) / CUM[XY.length-1];   // share of the whole line between two stations
+  function mumbaiClock(date){
+    const p = new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Kolkata",weekday:"short",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(date);
+    const g = t => p.find(x=>x.type===t).value;
+    return {dow:g("weekday"), min:(+g("hour")%24)*60 + +g("minute")};
+  }
+  // All times are minutes after midnight in Mumbai. `exact` is true only at the end of the line where the train starts.
+  function trains(o, d, date){
+    const last27 = XY.length-1, towards = d>o ? last27 : 1, from = d>o ? 1 : last27;
+    const lead = part(from,o);
+    const first = FIRST + Math.ceil(lead*RUN), last = LAST + Math.floor(lead*RUN_FAST);
+    const {dow, min} = mumbaiClock(date||new Date());
+    // `last` is on the early side away from the ends, so wait a few more minutes before saying the trains have stopped.
+    const grace = o===from ? 0 : 6;
+    const state = min<first ? "before" : min>last+grace ? "closed" : min>last-45 ? "ending" : "running";
+    return {towards, from, first, last, exact:o===from, ride:Math.max(2,Math.round(part(o,d)*RUN)),
+      gap:GAP[dow]||GAP_WEEKDAY, state, left:last-min, now:min};
+  }
+  // Google Maps shows the next train for this trip. This is its documented link format.
+  const mapsUrl = (o,d) => "https://www.google.com/maps/dir/?api=1&origin="+encodeURIComponent(XY[o].join(","))
+    +"&destination="+encodeURIComponent(XY[d].join(","))+"&travelmode=transit";
+  return {nearest, trains, mapsUrl, FIRST, LAST};
 })();
 /*EXTRA-END*/
 
@@ -631,6 +677,37 @@ const Extra = (() => {
     box.hidden = !box.children.length;
   }
 
+  // When trains run from the From station. Only the two ends of the line have exact published times; the rest say "about".
+  const clockText = m => { m=((m%1440)+1440)%1440; const h=Math.floor(m/60); return `${h%12||12}:${String(m%60).padStart(2,"0")} ${h<12?"AM":"PM"}`; };
+  function renderTrains(){
+    if (!tripOk()) return;
+    const {o,d} = trip, t = Extra.trains(o,d,new Date());
+    const ab = t.exact ? "" : "about ";
+    const every = "a train about every " + (t.gap[0]===t.gap[1] ? t.gap[0] : t.gap[0]+"–"+t.gap[1]) + " min";
+    const leaves = t.exact ? "" : `It leaves ${S[t.from].short} at `;
+    let now, sub;
+    if (t.state==="before"){
+      now = `First train ${ab}${clockText(t.first)}`;
+      sub = (leaves ? leaves+clockText(Extra.FIRST)+". " : "") + `After that, ${every}.`;
+    } else if (t.state==="closed"){
+      now = "No more trains tonight";
+      sub = `The last one leaves ${S[t.from].short} at ${clockText(Extra.LAST)}. First train tomorrow ${ab}${clockText(t.first)}.`;
+    } else if (t.state==="ending"){
+      now = t.left<1 ? "The last train is due about now" : `Last train in ${ab}${t.left} min`;
+      sub = `Be on the platform by ${ab}${clockText(t.last)}.` + (leaves ? " "+leaves+clockText(Extra.LAST)+"." : "");
+    } else {
+      now = every[0].toUpperCase()+every.slice(1);
+      sub = `About ${t.ride} min to ${S[d].short}. Last train from here ${ab}${clockText(t.last)}.`;
+    }
+    $("trains").classList.toggle("late", t.state==="ending" || t.state==="closed");
+    $("tDir").textContent = "towards " + S[t.towards].short;
+    $("tNow").textContent = now; $("tSub").textContent = sub;
+    $("tMap").href = Extra.mapsUrl(o,d);
+    $("tFine").textContent = "Estimated. The metro does not publish a train-by-train timetable.";
+  }
+  setInterval(()=>{ if (!$("trains").hidden) renderTrains(); }, 30000);
+  document.addEventListener("visibilitychange",()=>{ if (!document.hidden && !$("trains").hidden) renderTrains(); });
+
   function render(){
     const has = !!trip;
     $("stage").classList.toggle("has-trip", has);
@@ -647,6 +724,7 @@ const Extra = (() => {
     $("tSingle").setAttribute("aria-checked", String(!ret)); $("tReturn").setAttribute("aria-checked", String(!!ret));
 
     const ok = tripOk();
+    $("trains").hidden = !ok; renderTrains();
     const notes = [];
     if (trip.over) notes.push("One booking can have up to 6 tickets.");
     if (o && d && o===d) notes.push("From and To are the same station.");
